@@ -1,1 +1,3 @@
-关于选课：YJW 的软件工程课可以让你输得心服口服，但这又是何苦呢。建议慎选。
+Designed and implemented four sub-systems: User module, Forum module, Transaction module, Stock Information Retrieval Module, and combined them in a website using Django Web framework;
+
+Generated two modes to use the platform; the first is to do a simulated transaction based on the past stock trading data. The second one is to visualize the Real-time Stock Trading Data interactively.
