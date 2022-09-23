@@ -1,0 +1,42 @@
+@import '../bootstrap/css/bootstrap.min.css';
+@import '../bootstrap/css/materialdesignicons.min.css';
+
+body {
+  font-family: "Pingfang SC", "Source Han Sans SC", "Microsoft Yahei", Helvetica, Arial, sans-serif;
+  background: url("../images/bg.jpg") no-repeat;
+  background-size: cover;
+  margin: 0;
+}
+
+.hidden {
+  display: none;
+}
+
+.box {
+  text-align: center;
+  width: 350px;
+  margin: 100px auto;
+
+  img {
+    max-width: 250px;
+  }
+
+  .switch {
+    margin-top: 30px;
+    margin-bottom: 20px;
+    color: white;
+    font-size: 20px;
+    display: flex;
+
+    >div {
+      flex: 1;
+      padding: 10px 0;
+      border-bottom: 1px solid white;
+      cursor: pointer;
+    }
+
+    .act {
+      border-bottom-width: 2px;
+    }
+  }
+}

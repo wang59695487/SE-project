@@ -1,0 +1,17 @@
+#view_strategy_market .card {
+  display: inline-block;
+  margin: 10px 15px;
+  width: 350px;
+  vertical-align: top;
+}
+#view_strategy_market .card .user,
+#view_strategy_market .card .time {
+  font-size: 14px;
+  color: dimgray;
+}
+#view_strategy_market .card .description {
+  font-size: 16px;
+}
+#view_strategy_market .card button {
+  margin-top: 5px;
+}

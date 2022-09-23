@@ -1,0 +1,257 @@
+<link rel="stylesheet" href="res/styles/strategy.css">
+<script src="res/js/qtsnippets.js"></script>
+<script src="res/js/ace/ace.js"></script>
+<script src="res/js/ace/ext-language_tools.js"></script>
+
+<div id="view_strategy" class="container-fluid">
+    <div class="row">
+        <div class="col-md-3 col-lg-2 left">
+            <h3><i class="mdi mdi-format-list-bulleted-type"></i> 我的策略</h3>
+            <div class="empty" v-if="strategies.length == 0">
+                策略空空如也，<br>是否要新建一个？
+            </div>
+            <div class="list">
+                <div v-for="strategy in strategies" v-bind:class="{ act: strategy.id == selected }"
+                     @click="selected = strategy.id">
+                    <i class="mdi mdi-file-document"></i>
+                    {{ strategy.name }}
+                </div>
+            </div>
+            <button type="button" class="btn btn-success" @click="selected = 0">
+                <i class="mdi mdi-plus"></i> 新建一个策略
+            </button><br>
+            <button type="button" class="btn btn-info" v-on:click="historyClick">
+                <i class="mdi mdi-history"></i> 回测历史记录
+            </button>
+            <button type="button" class="btn btn-primary" v-on:click="marketClick">
+                <i class="mdi mdi-shopping"></i> 策略市场
+            </button>
+        </div>
+        <div class="col-md-9 col-lg-10 right">
+            <div v-if="selected >= 0">
+                <div class="header">
+                    <div>
+                        <bs-input v-model="detail.name" type="text" placeholder="给策略起个名字吧~">
+                            <span slot="before" class="input-group-addon">
+                                <i class="mdi mdi-rename-box"></i> 策略名称
+                            </span>
+                        </bs-input>
+                    </div>
+                    <div>
+                        <button-group v-model="int_public" type="info">
+                            <radio :selected-value="1"><i class="mdi mdi-share-variant"></i> 公开</radio>
+                            <radio :selected-value="0"><i class="mdi mdi-lock"></i> 私有</radio>
+                        </button-group>
+                        <button type="button" class="btn btn-primary" v-on:click="saveToBacktest">
+                            <i class="mdi mdi-play"></i> 保存并开始回测
+                        </button>
+                        <button type="button" class="btn btn-success" v-on:click="saveStrategy">
+                            <i class="mdi mdi-content-save"></i> 保存策略
+                        </button>
+                        <button type="button" class="btn btn-danger" v-if="selected > 0" @click="confirmDelete = true">
+                            <i class="mdi mdi-delete"></i> 删除策略
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <div class="card">
+                        <div class="title"><i class="mdi mdi-script"></i> 策略简介</div>
+                        <bs-input v-model="detail.description" type="textarea"></bs-input>
+                    </div>
+                    <div class="card">
+                        <div class="title"><i class="mdi mdi-code-tags"></i> 参数列表</div>
+                        <table class="table table-params">
+                            <thead>
+                            <tr>
+                                <th>变量名</th>
+                                <th>默认值</th>
+                                <th>参数描述</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr v-for="(param, index) in detail.params">
+                                <td><bs-input v-model="param.var" placeholder="变量名"></bs-input></td>
+                                <td><bs-input v-model="param.default" placeholder="默认值"></bs-input></td>
+                                <td><bs-input v-model="param.description" placeholder="参数描述"></bs-input></td>
+                                <td><button class="btn btn-danger" @click="deleteParam(index)"><i class="mdi mdi-delete"></i></button></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <button class="btn btn-success" v-on:click="addParam">
+                            <i class="mdi mdi-plus"></i> 添加参数
+                        </button>
+                    </div>
+                    <div class="card" style="margin-bottom: 20px;">
+                        <div class="title"><i class="mdi mdi-language-python"></i> 策略代码</div>
+                        <div style="margin-bottom: 10px;">
+                            <dropdown>
+                                <span slot="button">
+                                    <i class="mdi mdi-pencil"></i> 插入代码片段
+                                </span>
+                                <li v-for="snp in snippets">
+                                    <a href="javascript:" @click="insertCode(snp.code)">{{ snp.name }}</a>
+                                </li>
+                            </dropdown>
+                            <a href="#docs?article=backtest_api" target="_blank">
+                                <i class="mdi mdi-information-outline"></i> 回测 API 文档
+                            </a>
+                            <a href="#docs?article=qtshare_api" target="_blank">
+                                <i class="mdi mdi-information-outline"></i> QtShare 数据 API 文档
+                            </a>
+                        </div>
+                        <div id="code_editor" style="height: 500px;">{{ template }}</div>
+                    </div>
+                </div>
+            </div>
+            <div v-else class="no_select">
+                <div><i class="mdi mdi-vector-selection" style="font-size: 150px;"></i></div>
+                <div style="font-size: 20px;">从左侧选择一个策略开始吧~</div>
+            </div>
+        </div>
+    </div>
+    <modal title="确认" v-model="confirmDelete">
+        确定要删除这个策略吗？
+        <div slot="modal-footer" class="modal-footer">
+            <button type="button" class="btn btn-danger" v-on:click="deleteConfirm">确定删除</button>
+            <button type="button" class="btn btn-default" @click="confirmDelete = false">取消</button>
+        </div>
+    </modal>
+</div>
+
+<script type="text/javascript">
+    (function () {
+        var editor;
+        Vue.component('bs-input', VueStrap.input);
+        Vue.component('radio', VueStrap.radio);
+        Vue.component('button-group', VueStrap.buttonGroup);
+        Vue.component('dropdown', VueStrap.dropdown);
+        var view_strategy = new Vue({
+            el: '#view_strategy',
+            data: {
+                strategies: [],
+                selected: -1,
+                detail: {},
+                int_public: 1,
+                confirmDelete: false,
+                template: QuantraTemplate,
+                snippets: QuantraSnippets
+            },
+            watch: {
+                selected: function () {
+                    app.views.setParam({id: this.selected});
+                    if (this.selected > 0) {
+                        app.modals.showLoading('正在加载策略详情');
+                        app.requests.get('/api/trade/strategy/getdetail?id=' + this.selected, function (res) {
+                            view_strategy.detail = res.detail;
+                            view_strategy.int_public = res.detail.is_public ? 1 : 0;
+                            view_strategy.detail.params = JSON.parse(res.detail.parameters);
+                            if (editor) {
+                                editor.setValue(res.detail.code);
+                                editor.gotoLine(1);
+                            }
+                        }).always(function () {
+                            app.modals.hideLoading();
+                        });
+                    } else {
+                        view_strategy.detail = {
+                            name: '',
+                            description: '',
+                            code: QuantraTemplate,
+                            params: [],
+                            is_public: false
+                        };
+                    }
+                }
+            },
+            updated: function () {
+                ace.require("ace/ext/language_tools");
+                editor = ace.edit('code_editor');
+                editor.getSession().setMode("ace/mode/python");
+                editor.setOptions({
+                    enableBasicAutocompletion: true,
+                    enableSnippets: true,
+                    enableLiveAutocompletion: true
+                });
+            },
+            methods: {
+                historyClick: function () {
+                    app.views.load('backtest_history', {});
+                },
+                marketClick: function () {
+                    app.views.load('strategy_market', {});
+                },
+                addParam: function (e) {
+                    this.detail.params.push({var: '', default: '', description: ''});
+                    this.detail = Object.assign({}, this.detail);
+                },
+                deleteParam: function (index) {
+                    this.detail.params.splice(index, 1);
+                    this.detail = Object.assign({}, this.detail);
+                },
+                insertCode: function(code) {
+                    editor.insert(code);
+                },
+                saveStrategy: function () {
+                    if (this.detail.name == '') {
+                        app.modals.alert('warning', '提示', '请输入策略名称');
+                        return;
+                    }
+                    app.modals.showLoading('正在保存策略');
+                    var params = [];
+                    for (var key in this.detail.params) {
+                        if (this.detail.params[key].var != '') {
+                            params.push(this.detail.params[key]);
+                        }
+                    }
+                    return app.requests.post('/api/trade/strategy/update', {
+                        id: this.selected,
+                        name: this.detail.name,
+                        description: this.detail.description,
+                        code: editor.getValue(),
+                        parameters: JSON.stringify(params),
+                        is_public: (this.int_public == 1) ? true : false
+                    }, function (res) {
+                        app.modals.alert('success', '提示', '策略保存成功');
+                        view_strategy.selected = res.id;
+                    }).always(function () {
+                        app.requests.get('/api/trade/strategy/getlist', function (res) {
+                            view_strategy.strategies = res.strategies;
+                        }).always(function () {
+                            app.modals.hideLoading();
+                        });
+                    });
+                },
+                saveToBacktest: function () {
+                    this.saveStrategy().always(function () {
+                        app.views.load('backtest', {id: view_strategy.selected});
+                    });
+                },
+                deleteConfirm: function () {
+                    this.confirmDelete = false;
+                    app.modals.showLoading('正在删除策略');
+                    app.requests.get('/api/trade/strategy/delete?id=' + this.selected, function (res) {
+                        app.modals.alert('success', '提示', '策略删除成功');
+                        view_strategy.selected = -1;
+                    }).always(function () {
+                        app.requests.get('/api/trade/strategy/getlist', function (res) {
+                            view_strategy.strategies = res.strategies;
+                        }).always(function () {
+                            app.modals.hideLoading();
+                        });
+                    });
+                }
+            }
+        });
+
+        app.modals.showLoading('正在加载策略列表');
+        app.requests.get('/api/trade/strategy/getlist', function (res) {
+            view_strategy.strategies = res.strategies;
+            if (app.views.param.id) {
+                view_strategy.selected = app.views.param.id;
+            }
+        }).always(function () {
+            app.modals.hideLoading();
+        });
+    })();
+</script>

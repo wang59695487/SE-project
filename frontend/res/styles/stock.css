@@ -1,0 +1,57 @@
+#view_stock {
+  margin-top: 20px;
+}
+#view_stock .hori {
+  display: flex;
+  align-items: baseline;
+}
+#view_stock .hori .name {
+  flex: 1;
+  font-size: 32px;
+  color: #0055a2;
+}
+#view_stock .red {
+  color: #db5542;
+}
+#view_stock .green {
+  color: #53b37b;
+}
+#view_stock .prices {
+  display: flex;
+  padding: 10px 0;
+}
+#view_stock .prices > div {
+  flex: 1;
+  text-align: center;
+}
+#view_stock .prices > div > :first-child {
+  color: dimgray;
+  font-size: 16px;
+}
+#view_stock .prices > div > :last-child {
+  font-size: 32px;
+}
+#view_stock .rtdata > div {
+  flex: 1;
+  font-size: 16px;
+}
+#view_stock .prediction {
+  font-size: 24px;
+  text-align: center;
+  padding: 10px 0;
+}
+#view_stock .echarts {
+  width: 100%;
+}
+#view_stock .chart_select {
+  padding-left: 30px;
+}
+#view_stock .chart_select span {
+  padding: 0 10px;
+}
+#view_stock .chart_select span.act {
+  font-weight: bold;
+}
+#view_stock h4 {
+  margin-top: 20px;
+}

@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/container2.css' %}">
+    <script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vue.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vue-strap.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/echarts.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/app.js' %}"></script>
+    <title>Quantra</title>
+</head>
+{% verbatim %}
+<body>
+<header>
+    <div>
+        <a href="javascript:" onclick="app.views.load('home');">
+            <img src="res/images/logo.png">
+        </a>
+    </div>
+    <div id="search">
+        <typeahead :data="list" :limit="10" placeholder="股票代码/名称/拼音首字母..." :on-hit="onSelect"></typeahead>
+    </div>
+    <div>
+        <ul id="nav">
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'home' }" v-on:click="navClick"
+                   data-view="home">
+                首页
+            </a></li>
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'market' }" v-on:click="navClick"
+                   data-view="market">
+                市场
+            </a></li>
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'stockpool' }" v-on:click="navClick"
+                   data-view="stockpool">
+                行情
+            </a></li>
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'strategy' }" v-on:click="navClick"
+                   data-view="strategy">
+                回测
+            </a></li>
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'simulate' }" v-on:click="navClick"
+                   data-view="simulate">
+                模拟交易
+            </a></li>
+            <li><a href="javascript:" v-bind:class="{ act: selected == 'forum' }" v-on:click="navClick"
+                   data-view="forum">
+                讨论区
+            </a></li>
+        </ul>
+    </div>
+    <div id="userinfo">
+        <img src="res/images/nohead.jpg">
+        <span v-if="username != ''">
+            你好，{{username}} <a href="javascript:" v-on:click="doModify">个人信息</a> <a href="javascript:" v-on:click="doLogout">退出</a>
+        </span>
+        <span v-else>
+            你好，请 <a href="javascript:" v-on:click="goLogin">登录或注册</a>
+        </span>
+    </div>
+</header>
+<div id="modals">
+    <alert v-model="showAlert" placement="top-right" :duration="3000" :type="type" width="300px" dismissable>
+        <strong>{{ title }}</strong>
+        <p>{{ message }}</p>
+    </alert>
+    <spinner v-model="loadingVisible" size="xl" fixed :text="loadingText" style="z-index: 9999;"></spinner>
+</div>
+<div id="container">
+    <div id="content"></div>
+</div>
+
+<script type="text/javascript">
+    (function () {
+        app.nav = new Vue({
+            el: '#nav',
+            data: {
+                selected: ''
+            },
+            methods: {
+                navClick: function (e) {
+                    app.views.load(e.target.dataset.view);
+                }
+            }
+        });
+
+        Vue.component('alert', VueStrap.alert);
+        Vue.component('spinner', VueStrap.spinner);
+        app.modals = new Vue({
+            el: '#modals',
+            data: {
+                showAlert: false,
+                type: 'success',
+                title: '',
+                message: '',
+                loadingCount: 0,
+                loadingText: ''
+            },
+            computed: {
+                loadingVisible: function () {
+                    return this.loadingCount > 0;
+                }
+            },
+            methods: {
+                alert: function (type, title, msg) {
+                    this.type = type;
+                    this.title = title;
+                    this.message = msg;
+                    this.showAlert = true;
+                },
+                showLoading: function (msg) {
+                    if (msg) {
+                        this.loadingText = msg;
+                    } else {
+                        this.loadingText = 'Loading ...';
+                    }
+                    this.loadingCount++;
+                },
+                hideLoading: function () {
+                    this.loadingCount--;
+                    if (this.loadingCount < 0) {
+                        this.loadingCount = 0;
+                    }
+                }
+            }
+        });
+
+        Vue.component('typeahead', VueStrap.typeahead);
+        var search_box = new Vue({
+            el: '#search',
+            data: {
+                list: []
+            },
+            methods: {
+                onSelect: function (item) {
+                    app.views.load('stock', {code: Number(item.split(' ')[0]), realtime: app.views.param.realtime});
+                }
+            }
+        });
+
+        Vue.component('modal', VueStrap.modal);
+        var user_info = new Vue({
+            el: '#userinfo',
+            data: {
+                username: '',
+            },
+            methods: {
+                goLogin: function () {
+                    location = '/login?' + encodeURIComponent(location.hash.substring(1));
+                },
+                doModify: function () {
+                    location = '/modify?' + encodeURIComponent(location.hash.substring(1));
+                },
+                doLogout: function () {
+                    $.getJSON('/api/user/logout', function (ret) {
+                        if (ret.ok) {
+                            user_info.username = '';
+                            location.reload();
+                        }
+                    });
+                }
+            }
+        });
+        $.getJSON('/api/user/status', function (ret) {
+            if (ret && ret.status) {
+                user_info.username = ret.username;
+            } else {
+                user_info.username = '';
+            }
+        });
+
+        app.modals.showLoading('正在初始化');
+        app.index.fetch().always(function () {
+            var src = [];
+            for (var code in app.index.stocks) {
+                src.push(app.utils.formatCode(code) + ' ' + app.index.stocks[code].name + ' ' + app.index.stocks[code].pinyin);
+            }
+            search_box.list = src;
+            $('body').on('keypress', function (e) {
+                if (e.target.nodeName != 'INPUT' && e.target.nodeName != 'TEXTAREA') {
+                    $('#search input').focus();
+                }
+            });
+            app.modals.hideLoading();
+
+            var loadPage = function () {
+                var hash = location.hash.substr(1).split('?');
+                if (hash[0] != '') {
+                    var params = {};
+                    if (hash.length > 1) {
+                        query = hash[1].split('&');
+                        for (var i = query.length; i > 0;) {
+                            var pair = query[--i].split('=');
+                            params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1]);
+                        }
+                    }
+                    app.views.load(hash[0], params);
+                } else {
+                    app.views.load('home');
+                }
+            };
+            window.onpopstate = loadPage;
+            loadPage();
+        });
+
+        setInterval(function () {
+            $('body').css('overflow-y', 'auto');
+        }, 1000);
+    })();
+</script>
+</body>
+{% endverbatim %}
+</html>

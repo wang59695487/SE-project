@@ -1,0 +1,115 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/login.css' %}">
+    <script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vue.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/vue-strap.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/sha256.min.js' %}"></script>
+    <title>个人信息</title>
+</head>
+{% verbatim %}
+<body>
+    <div class="box" id="view">
+        <img src="res/images/logo.png">
+        <div class="switch">
+            <div>风险等级：{{ risk_level }}<br>信用积分：{{ credit_score }}</div>
+        </div>
+        <form>
+            <bs-input v-model="email" placeholder="邮箱" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="phone" placeholder="电话" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="gender" placeholder="性别" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="age" placeholder="年龄" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="residence" placeholder="所在地" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="hobby" placeholder="爱好" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <bs-input v-model="annual_income" placeholder="年收入" :enter-submit="true">
+                <span slot="before" class="input-group-addon"><i class="mdi mdi-18px mdi-account-edit"></i></span>
+            </bs-input>
+            <div>
+                <button class="form-control btn btn-success" v-on:click="doModify" type='button'>更新信息</button>
+            </div>
+            <br>
+            <div>
+                <button class="form-control btn" v-on:click="doModifyPassword" type='button'>修改密码</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            Vue.component('button-group', VueStrap.buttonGroup);
+            Vue.component('radio', VueStrap.radio);
+            Vue.component('bs-input', VueStrap.input);
+            var view = new Vue({
+                el: '#view',
+                data: {
+                    'email': "",
+                    'phone': "",
+                    'gender': "",
+                    'age': "",
+                    'residence': "",
+                    'hobby': "",
+                    'annual_income': "",
+                    'risk_level': "",
+                    'credit_score': ""
+                },
+                methods: {
+                    doModify: function (e) {
+                        console.log("wef")
+                        $.post("/api/user/update", {
+                            'type': 'info',
+                            'email': this.email,
+                            'phone': this.phone,
+                            'gender': this.gender == "男" ? "male" : "female",
+                            'age': this.age,
+                            'residence': this.residence,
+                            'hobby': this.hobby,
+                            'annual_income': this.annual_income
+                        }, function (ret) {
+                            console.log(ret)
+                            if (ret.ok) {
+                                alert('更新成功');
+                                location = '/#' + decodeURIComponent(location.search.substring(1));
+                            } else {
+                                alert(ret.msg);
+                            }
+                        });
+                        // return false;
+                    },
+                    doModifyPassword: function(e) {
+                        location = '/modify_password?' + encodeURIComponent(location.hash.substring(1));
+                    }
+                }
+            })
+            $.getJSON('/api/user/status', function (ret) {
+                view.email = ret.info.email
+                view.phone = ret.info.phone
+                view.gender = ret.info.gender == "male" ? "男" : "女"
+                view.age = ret.info.age
+                view.residence = ret.info.residence
+                view.hobby = ret.info.hobby
+                view.annual_income = ret.info.annual_income
+                view.risk_level = ["无", "低", "中", "高"][ret.info.risk_level]
+                view.credit_score = ret.info.credit_score
+                console.log(ret)
+            });
+        })();
+    </script>
+</body>
+{% endverbatim %}
+</html>

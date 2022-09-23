@@ -1,0 +1,22 @@
+.items{
+  .item{
+    border-bottom: solid 1px #cecece;
+    padding: 10px;
+    position: relative;
+    h2{
+      margin: 5px 0;
+    }
+    .actions{
+      position: absolute;
+      right: 5px;
+      top: 15px;
+      button{
+        margin-right: 5px;
+      }
+    }
+  }
+  .item:last-child{
+    border-bottom: none;
+  }
+}
+

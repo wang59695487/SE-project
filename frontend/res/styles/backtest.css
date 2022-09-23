@@ -1,0 +1,41 @@
+#view_backtest {
+  margin-top: 20px;
+}
+#view_backtest .header {
+  display: flex;
+  margin-bottom: 20px;
+}
+#view_backtest .header h1 {
+  flex: 1;
+  margin: 0;
+}
+#view_backtest .block {
+  margin-left: 30px;
+}
+#view_backtest .backtest_result {
+  display: flex;
+  padding: 10px 0;
+}
+#view_backtest .backtest_result > div {
+  flex: 1;
+  text-align: center;
+}
+#view_backtest .backtest_result > div > :first-child {
+  color: dimgray;
+  font-size: 14px;
+}
+#view_backtest .backtest_result > div > :last-child {
+  font-size: 28px;
+}
+#view_backtest .table .form-group {
+  margin: 0;
+}
+#view_backtest .red {
+  color: #db5542;
+}
+#view_backtest .green {
+  color: #53b37b;
+}
+#view_backtest .echarts {
+  width: 100%;
+}

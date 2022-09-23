@@ -1,0 +1,49 @@
+#view_strategy {
+  height: 100%;
+}
+#view_strategy .row {
+  height: 100%;
+}
+#view_strategy .left {
+  background-color: #eaf1fa;
+  height: 100%;
+  padding: 0;
+}
+#view_strategy .left .list {
+  padding-top: 10px;
+}
+#view_strategy .left .list > div {
+  height: 30px;
+  line-height: 30px;
+  padding-left: 30px;
+}
+#view_strategy .left .list > div.act {
+  background-color: white;
+}
+#view_strategy .left .empty,
+#view_strategy .left h3,
+#view_strategy .left button {
+  margin-left: 20px;
+}
+#view_strategy .left button {
+  margin-top: 10px;
+}
+#view_strategy .right .header {
+  margin-top: 10px;
+  display: flex;
+}
+#view_strategy .right .header > div:first-child {
+  flex: 1;
+}
+#view_strategy .right .table-params .form-group {
+  margin: 0;
+}
+#view_strategy .right #code_editor {
+  font-size: 14px;
+}
+#view_strategy .right .no_select {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: dimgray;
+}

@@ -1,0 +1,547 @@
+<!--suppress ALL -->
+<link rel="stylesheet" href="res/styles/stock.css">
+<script type="text/javascript" src="res/js/vue-echarts.js"></script>
+<script type="text/javascript" src="res/js/qtcharts.js"></script>
+
+<div id="view_stock" class="fix-width">
+    <div class="hori">
+        <div class="name">
+            {{ name }} <span class="code">({{ fcode(code) }})</span>
+        </div>
+        <button-group v-model="realtime" type="info">
+            <radio :selected-value="0"><i class="mdi mdi-history"></i> 历史</radio>
+            <radio :selected-value="1"><i class="mdi mdi-timer"></i> 实时</radio>
+        </button-group>
+    </div>
+    <div class="card">
+        <div class="title">
+            <i class="mdi mdi-cash"></i> 股票价格
+        </div>
+        <div class="prices">
+            <div>
+                <div>当前价格</div>
+                <div v-bind:class="{ red: rate > 0, green: rate < 0 }" v-if="latest.price > 0">
+                    ¥ {{ latest.price }}</div>
+                <div v-else>停牌中</div>
+            </div>
+            <div>
+                <div>涨跌幅</div>
+                <div v-bind:class="{ red: rate > 0, green: rate < 0 }" v-if="latest.price > 0">
+                    <span v-if="rate >= 0">▲ {{ percent(rate) }}</span>
+                    <span v-else>▼ {{ percent(rate) }}</span>
+                </div>
+                <div v-else>停牌中</div>
+            </div>
+            <div>
+                <div>昨收</div>
+                <div>{{ latest.yest_close }}</div>
+            </div>
+            <div>
+                <div>今开</div>
+                <div>{{ latest.open }}</div>
+            </div>
+            <div>
+                <div>最高</div>
+                <div>{{ latest.high }}</div>
+            </div>
+            <div>
+                <div>最低</div>
+                <div>{{ latest.low }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="card" v-if="realtime == 0">
+        <div class="title">
+            <i class="mdi mdi-chart-line"></i> 历史行情 K 线图
+        </div>
+        <chart auto-resize :options="kChart" ref="kChart" v-on:datazoom="chartZoom" style="height: 600px;"></chart>
+        <div class="chart_select">
+            辅助图表切换
+            <span v-bind:class="{ act: extraChart == 'vol' }">
+                <a href="javascript:" v-on:click="chartClick">VOL</a>
+            </span>
+            <span v-bind:class="{ act: extraChart == 'macd' }">
+                <a href="javascript:" v-on:click="chartClick">MACD</a>
+            </span>
+            <span v-bind:class="{ act: extraChart == 'boll' }">
+                <a href="javascript:" v-on:click="chartClick">BOLL</a>
+            </span>
+            <span v-bind:class="{ act: extraChart == 'kdj' }">
+                <a href="javascript:" v-on:click="chartClick">KDJ</a>
+            </span>
+            <span v-bind:class="{ act: extraChart == 'psy' }">
+                <a href="javascript:" v-on:click="chartClick">PSY</a>
+            </span>
+        </div>
+    </div>
+    <div class="card" v-if="realtime == 1">
+        <div class="title">
+            <i class="mdi mdi-format-list-numbers"></i> 交易实况（价格 / 成交量）
+        </div>
+        <div class="hori rtdata">
+            <div>
+                买一：{{ rtData.b1_p }} / {{ rtData.b1_v }}<br>
+                卖一：{{ rtData.a1_p }} / {{ rtData.a1_v }}
+            </div>
+            <div>
+                买二：{{ rtData.b2_p }} / {{ rtData.b2_v }}<br>
+                卖二：{{ rtData.a2_p }} / {{ rtData.a2_v }}
+            </div>
+            <div>
+                买三：{{ rtData.b3_p }} / {{ rtData.b3_v }}<br>
+                卖三：{{ rtData.a3_p }} / {{ rtData.a3_v }}
+            </div>
+            <div>
+                买四：{{ rtData.b4_p }} / {{ rtData.b4_v }}<br>
+                卖四：{{ rtData.a4_p }} / {{ rtData.a4_v }}
+            </div>
+            <div>
+                买五：{{ rtData.b5_p }} / {{ rtData.b5_v }}<br>
+                卖五：{{ rtData.a5_p }} / {{ rtData.a5_v }}
+            </div>
+        </div>
+    </div>
+    <div class="card" v-if="realtime == 1">
+        <div class="title">
+            <i class="mdi mdi-chart-line"></i> 实时行情
+        </div>
+        <chart auto-resize :options="rtChart" ref="rtChart" style="height: 600px;"></chart>
+    </div>
+
+    <div class="card">
+        <div class="title">
+            <i class="mdi mdi-timetable"></i> 股票走势预测
+        </div>
+        <div v-if="predict.done" class="prediction">
+            <div>
+                Quantra 预测下一交易日该股票会
+                <span class="red" v-if="predict.rate > 0">上涨</span>
+                <span v-if="predict.rate == 0">一动不动</span>
+                <span class="green" v-if="predict.rate < 0">下跌</span>
+            </div>
+            <div>
+                过去的 60 个交易日，Quantra 的预测准确率为 {{ percent(predict.success) }}
+            </div>
+        </div>
+        <div v-if="predict.error" class="prediction">
+            <div>我们的神经网络比较繁忙</div>
+            <div>稍后再来试一下？</div>
+        </div>
+        <chart auto-resize v-if="!predict.error" :options="predictChart" ref="predictChart" style="height: 400px;"></chart>
+    </div>
+
+    <div class="card">
+        <div class="title">
+            <i class="mdi mdi-newspaper"></i> 股票相关新闻
+        </div>
+        <div v-if="stock_news.length == 0">正在加载新闻 ...</div>
+        <table v-else class="table table-striped table-hover">
+            <thead>
+            <tr>
+                <th>日期</th>
+                <th>类型</th>
+                <th>标题</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="news in stock_news">
+                <td>{{ news.date }}</td>
+                <td>{{ news.type }}</td>
+                <td><a v-bind:href="news.url" target="_blank">{{ news.title }}</a></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        var stock_data = {};
+        var calcMA = function (data, days) {
+            var ma = [];
+            for (var i = 0; i < data.length; i++) {
+                if (i < days - 1) {
+                    ma.push(null);
+                } else {
+                    ma.push(
+                        data.slice(i - days + 1, i + 1).map(function (d) {
+                            return d[1];
+                        }).reduce(function (a, b) {
+                            return a + b;
+                        }) / days
+                    );
+                }
+            }
+            return ma;
+        };
+        var updateInfo = function (index) {
+            view_stock.latest.price = stock_data.data[index][1];
+            view_stock.latest.open = stock_data.data[index][0];
+            view_stock.latest.high = stock_data.data[index][2];
+            view_stock.latest.low = stock_data.data[index][3];
+            if (index > 0) {
+                view_stock.latest.yest_close = stock_data.data[index - 1][1];
+            }
+        };
+        var kChartOptions = {
+            animation: false,
+            grid: [
+                {
+                    right: 30,
+                    height: '60%'
+                },
+                {
+                    top: '75%',
+                    bottom: 20,
+                    right: 30
+                }
+            ],
+            xAxis: [
+                {
+                    data: []
+                },
+                {
+                    gridIndex: 1,
+                    axisLabel: {show: false},
+                    data: []
+                }
+            ],
+            yAxis: [
+                {
+                    scale: true
+                },
+                {
+                    gridIndex: 1,
+                    scale: true
+                }
+            ],
+            legend: {
+                data: ['MA5', 'MA10', 'MA20', 'MA30', 'MA60']
+            },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    xAxisIndex: [0, 1],
+                    start: 90,
+                    end: 100
+                }
+            ],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            axisPointer: {
+                link: [{xAxisIndex: [0, 1]}]
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    dataZoom: {},
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            series: []
+        };
+        var rtChartOptions = {
+            animation: false,
+            xAxis: [
+                {
+                    data: []
+                },
+                {
+                    gridIndex: 1,
+                    axisLabel: {show: false},
+                    data: [],
+                    boundaryGap: [0, 0]
+                }
+            ],
+            grid: [
+                {
+                    right: 10,
+                    height: '60%'
+                },
+                {
+                    top: '75%',
+                    right: 10
+                }
+            ],
+            yAxis: [
+                {
+                    scale: true
+                },
+                {
+                    gridIndex: 1,
+                    scale: true
+                }
+            ],
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            axisPointer: {
+                link: [{xAxisIndex: [0, 1]}]
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    dataZoom: {},
+                    restore: {},
+                    saveAsImage: {}
+                }
+            },
+            series: []
+        };
+        var predictChartOptions = {
+            animation: false,
+            xAxis: {data: []},
+            yAxis: {scale: true},
+            legend: {
+                data: ['预测涨幅', '实际涨幅']
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross'
+                }
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    saveAsImage: {}
+                }
+            },
+            series: []
+        };
+
+        Vue.component('chart', VueECharts);
+        Vue.component('button-group', VueStrap.buttonGroup);
+        Vue.component('radio', VueStrap.radio);
+        var view_stock = new Vue({
+            el: '#view_stock',
+            data: {
+                code: app.views.param.code,
+                name: '',
+                realtime: app.views.param.realtime ? app.views.param.realtime : 0,
+                latest: {
+                    yest_close: 0,
+                    open: 0,
+                    high: 0,
+                    low: 0,
+                    price: 0
+                },
+                rtData: {},
+                kChart: kChartOptions,
+                rtChart: rtChartOptions,
+                predictChart: predictChartOptions,
+                extraChart: 'vol',
+                stock_news: [],
+                predict: {
+                    done: false,
+                    error: false,
+                    rate: 0,
+                    success: 0
+                }
+            },
+            computed: {
+                rate: function () {
+                    return (this.latest.price - this.latest.yest_close) / this.latest.yest_close;
+                }
+            },
+            watch: {
+                realtime: function () {
+                    app.views.setParam({realtime: this.realtime});
+                    this.loadStocks();
+                }
+            },
+            methods: {
+                fcode: app.utils.formatCode,
+                percent: app.utils.formatPercent,
+                chartClick: function (e) {
+                    this.extraChart = e.target.innerHTML.toLowerCase();
+                    this.loadExtraChart(stock_data);
+                },
+                chartZoom: function (e) {
+                    kChartOptions.dataZoom[0].start = e.batch[0].start;
+                    kChartOptions.dataZoom[0].end = e.batch[0].end;
+                    updateInfo(Math.floor(stock_data.dates.length * e.batch[0].end / 100));
+                },
+                resizeCharts: function () {
+                    this.$refs.predictChart && this.$refs.predictChart.resize();
+                    this.$refs.kChart && this.$refs.kChart.resize();
+                    this.$refs.rtChart && this.$refs.rtChart.resize();
+                },
+                loadStocks: function () {
+                    if (app.modals.loadingCount > 0) return;
+                    app.modals.showLoading('正在加载股票数据');
+                    app.requests.wsClose();
+                    if (this.realtime == 0) {
+                        app.requests.get('/api/stock/stock?code=' + this.code, function (res) {
+                            stock_data = res;
+                            view_stock.name = res.name;
+                            kChartOptions.xAxis = [
+                                {
+                                    data: res.dates
+                                },
+                                {
+                                    gridIndex: 1,
+                                    axisLabel: {show: false},
+                                    data: res.dates
+                                }
+                            ];
+                            view_stock.$refs.kChart && view_stock.$refs.kChart.mergeOptions(kChartOptions);
+                            updateInfo(res.dates.length - 1);
+                            view_stock.loadExtraChart(res);
+                        }).always(function () {
+                            view_stock.resizeCharts();
+                            app.modals.hideLoading();
+                        });
+                    } else if (this.realtime == 1) {
+                        app.requests.wsConnect('ws/realtime_price?code=' + this.code);
+                        app.requests.ws.onmessage = function (msg) {
+                            var res = JSON.parse(msg.data);
+                            view_stock.rtData = res.quotes;
+                            view_stock.name = res.quotes.name;
+                            view_stock.latest = {
+                                yest_close: res.quotes.pre_close,
+                                open: res.quotes.open,
+                                high: res.quotes.high,
+                                low: res.quotes.low,
+                                price: res.quotes.price
+                            };
+                            view_stock.$refs.rtChart.mergeOptions({
+                                xAxis: [
+                                    {data: res.ticks}, {data: res.ticks}
+                                ],
+                                series: [
+                                    {
+                                        type: 'line',
+                                        name: '价格',
+                                        showSymbol: false,
+                                        data: res.prices
+                                    },
+                                    {
+                                        type: 'bar',
+                                        name: '成交量',
+                                        xAxisIndex: 1,
+                                        yAxisIndex: 1,
+                                        data: res.volumes
+                                    }
+                                ]
+                            });
+                            view_stock.resizeCharts();
+                            app.modals.hideLoading();
+                        }
+                    }
+                },
+                loadExtraChart: function (res) {
+                    if (QuantraCharts && QuantraCharts[this.extraChart] && view_stock.$refs.kChart) {
+                        kChartOptions.series = [
+                            {
+                                type: 'candlestick',
+                                data: res.data
+                            },
+                            {
+                                type: 'line',
+                                showSymbol: false,
+                                name: 'MA5',
+                                data: calcMA(res.data, 5)
+                            },
+                            {
+                                type: 'line',
+                                showSymbol: false,
+                                name: 'MA10',
+                                data: calcMA(res.data, 10)
+                            },
+                            {
+                                type: 'line',
+                                showSymbol: false,
+                                name: 'MA20',
+                                data: calcMA(res.data, 20)
+                            },
+                            {
+                                type: 'line',
+                                showSymbol: false,
+                                name: 'MA30',
+                                data: calcMA(res.data, 30)
+                            },
+                            {
+                                type: 'line',
+                                showSymbol: false,
+                                name: 'MA60',
+                                data: calcMA(res.data, 60)
+                            }
+                        ].concat(QuantraCharts[this.extraChart](res));
+                        view_stock.$refs.kChart.clear();
+                        view_stock.$refs.kChart.mergeOptions(kChartOptions);
+                    }
+                },
+                loadPredict: function () {
+                    view_stock.$refs.predictChart.showLoading();
+                    $.ajax({
+                        url: '/api/stock/predict?code=' + this.code,
+                        timeout: 60000,
+                        dataType: 'json',
+                        success: function (result, status, xhr) {
+                            if (result.ok == false) {
+                                view_stock.predict.error = true;
+                            } else {
+                                view_stock.predict.done = true;
+                                var rate = result.tomorrow;
+                                var success = 0;
+                                for (var i = 0; i < result.predict.length; i++) {
+                                    if (Math.sign(result.predict[i]) == Math.sign(result.real[i])) {
+                                        success++;
+                                    }
+                                }
+                                var success_rate = success / result.predict.length;
+                                if (success_rate < 0.5) {
+                                    success_rate = 1 - success_rate;
+                                    rate = -rate;
+                                    for (var i = 0; i < result.predict.length; i++) {
+                                        result.predict[i] = -result.predict[i];
+                                    }
+                                }
+                                view_stock.predict.rate = rate;
+                                view_stock.predict.success = success_rate;
+                                if (view_stock.$refs.predictChart) {
+                                    view_stock.$refs.predictChart.mergeOptions({
+                                        xAxis: {data: result.dates},
+                                        series: [
+                                            {
+                                                type: 'line',
+                                                name: '预测涨幅',
+                                                data: result.predict
+                                            },
+                                            {
+                                                type: 'line',
+                                                name: '实际涨幅',
+                                                data: result.real
+                                            }
+                                        ]
+                                    });
+                                }
+                            }
+                            view_stock.resizeCharts();
+                        },
+                        error: function (xhr, status, error) {
+                            view_stock.predict.error = true;
+                        }
+                    }).always(function () {
+                        view_stock.$refs.predictChart.hideLoading();
+                    });
+                }
+            }
+        });
+
+        view_stock.loadStocks();
+        view_stock.loadPredict();
+        app.requests.get('/api/stock/news?code=' + view_stock.code, function (res) {
+            view_stock.stock_news = res;
+        });
+    });
+</script>

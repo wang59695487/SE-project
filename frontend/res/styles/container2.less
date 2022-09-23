@@ -1,0 +1,128 @@
+@import '../bootstrap/css/bootstrap.min.css';
+@import '../bootstrap/css/materialdesignicons.min.css';
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: "Pingfang SC", "Source Han Sans SC", "Microsoft Yahei", Helvetica, Arial, sans-serif;
+  background-color: #f9f9f9;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none;
+}
+
+.fix-width {
+  width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media all and (max-width: 1200px) {
+  .fix-width {
+    width: 100%;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+header {
+  flex-shrink: 0;
+  background-color: #023b53;
+  color: whitesmoke;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 50px;
+
+  a {
+    color: rgba(204, 218, 234, .6);
+    text-decoration: none;
+  }
+
+  a.act, a:hover {
+    color: whitesmoke;
+    text-decoration: none;
+  }
+
+  >div:first-child {
+    flex: 1;
+
+    img {
+      max-height: 30px;
+    }
+  }
+
+  >div:nth-child(2) {
+    margin-right: 10px;
+
+    input {
+      width: 250px;
+      height: 28px;
+      border: none;
+      padding: 0 10px;
+      color: whitesmoke;
+      background-color: rgba(255, 255, 255, .1);
+      font-size: 14px;
+      line-height: 28px;
+    }
+  }
+
+  >div:nth-child(3) {
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      float: left;
+      padding: 0 10px;
+    }
+  }
+
+  >div:nth-child(4) {
+    margin-left: 10px;
+    img {
+      margin-right: 10px;
+      max-height: 35px;
+      border-radius: 50%;
+    }
+
+    .modal-dialog {
+      color: black;
+    }
+  }
+}
+
+#container {
+  flex: 1;
+
+  .loading {
+    margin-top: 50px;
+    text-align: center;
+  }
+
+  #content {
+    height: 100%;
+  }
+}
+
+.card {
+  margin-top: 10px;
+  background-color: white;
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, .3);
+  padding: 10px 20px;
+
+  .title {
+    font-size: 18px;
+    border-bottom: 1px solid lightgray;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }
+}
